@@ -18,9 +18,9 @@ export default async function getOrCreateStorage() {
           Permission.update("users"),
           Permission.delete("users"),
         ],
-        false,
-        undefined,
-        undefined,
+        false, // File security disabled (optional)
+        undefined, // Maximum file size (optional)
+        undefined, // Not using any specific file security rules here
         ["jpg", "png", "gif", "jpeg", "webp", "heic"]
       );
       console.log("Storage Created");
