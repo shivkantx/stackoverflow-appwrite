@@ -1,10 +1,10 @@
-import { IndexType } from "node-appwrite";
+import { IndexType, Permission } from "node-appwrite";
+
 import { db, questionCollection } from "../name";
 import { databases } from "./config";
-import { Permission } from "appwrite";
 
 export default async function createQuestionCollection() {
-  // Create collection
+  // create collection
   await databases.createCollection(db, questionCollection, questionCollection, [
     Permission.read("any"),
     Permission.read("users"),
@@ -12,9 +12,10 @@ export default async function createQuestionCollection() {
     Permission.update("users"),
     Permission.delete("users"),
   ]);
-  console.log("✅ Question collection is created");
+  console.log("Question collection is created");
 
-  // Create attributes
+  //creating attributes and Indexes
+
   await Promise.all([
     databases.createStringAttribute(db, questionCollection, "title", 100, true),
     databases.createStringAttribute(
@@ -48,26 +49,28 @@ export default async function createQuestionCollection() {
       false
     ),
   ]);
-  console.log("✅ Question attributes created");
+  console.log("Question Attributes created");
 
-  // Create indexes
+  // create Indexes
+
+  /*
   await Promise.all([
     databases.createIndex(
       db,
       questionCollection,
-      "titleIndex",
+      "title",
       IndexType.Fulltext,
       ["title"],
-      ["asc"]
+      ['asc']
     ),
     databases.createIndex(
       db,
       questionCollection,
-      "contentIndex",
+      "content",
       IndexType.Fulltext,
       ["content"],
-      ["asc"]
-    ),
-  ]);
-  console.log("✅ Indexes created");
+      ['asc']
+    )
+  ])
+    */
 }
