@@ -1,5 +1,5 @@
 import { answerCollection, db } from "@/models/name";
-import { databases } from "@/models/server/config";
+import { databases, users } from "@/models/server/config";
 import { NextRequest, NextResponse } from "next/server";
 import { ID } from "node-appwrite";
 import { UserPrefs } from "@/store/Auth";
@@ -14,11 +14,33 @@ export async function POST(request: NextRequest) {
       {
         content: answer,
         authorId: authorId,
-        qquestionId: questionId,
+        questionId: questionId,
       }
     );
 
     // increase author reputation
+    const prefs = await users.getPrefs<UserPrefs>(authorId);
+    await users.updatePrefs(authorId, {
+      reputation: Number(prefs.reputation) + 1,
+    });
+
+    return NextResponse.json(response, {
+      status: 201,
+    });
+  } catch (error: any) {
+    return NextResponse.json(
+      {
+        error: error?.message || "error creating answer",
+      },
+      {
+        status: error?.status || error?.code || 500,
+      }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
   } catch (error: any) {
     return NextResponse.json(
       {

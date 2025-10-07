@@ -30,7 +30,7 @@ export default async function createAnswerCollection() {
       50,
       true
     ),
-    databases.createStringAttribute(db, answerCollection, "autherId", 50, true),
+    databases.createStringAttribute(db, answerCollection, "authorId", 50, true),
   ]);
   console.log("Answer Attribute created");
 }
