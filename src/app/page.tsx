@@ -1,57 +1,95 @@
+"use client";
+
+import { motion } from "framer-motion";
+import Link from "next/link";
+import {
+  IconQuestionMark,
+  IconMessageCircle,
+  IconUsers,
+} from "@tabler/icons-react";
+import AnimatedGridPattern from "@/components/magicui/animated-grid-pattern";
+import { cn } from "@/utils/cn";
+
 export default function Home() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-gray-100 px-6">
-      {/* Logo */}
-      <div className="flex items-center gap-2 mb-6">
-        <svg
-          className="w-10 h-10"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M12 2L2 7L12 12L22 7L12 2Z"
-            fill="#60A5FA"
-            stroke="#60A5FA"
-            strokeWidth="2"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M2 17L12 22L22 17"
-            stroke="#60A5FA"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M2 12L12 17L22 12"
-            stroke="#60A5FA"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-        <h1 className="text-2xl font-bold">Stack Overflow Clone</h1>
-      </div>
+    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-white to-gray-100 dark:from-zinc-900 dark:to-black text-gray-800 dark:text-gray-100">
+      {/* Animated Background */}
+      <AnimatedGridPattern
+        numSquares={25}
+        maxOpacity={0.2}
+        duration={3}
+        repeatDelay={1}
+        className={cn(
+          "absolute inset-0 -z-10 [mask-image:radial-gradient(800px_circle_at_center,white,transparent)]"
+        )}
+      />
 
-      {/* Main Content */}
-      <h2 className="text-3xl sm:text-4xl font-extrabold mb-3 text-center">
-        Welcome to the Q&A Platform
-      </h2>
-      <p className="text-gray-400 max-w-md text-center mb-6">
-        Ask questions, share knowledge, and connect with developers — powered by
-        Appwrite & Next.js.
-      </p>
+      {/* Hero Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7 }}
+        className="flex flex-col items-center text-center px-6"
+      >
+        <h1 className="text-6xl font-extrabold mb-4">
+          <span className="text-blue-600">StackFlow</span>
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400 mb-8 text-lg max-w-md">
+          The modern Q&A platform where developers learn, share, and grow
+          together.
+        </p>
 
-      {/* Buttons */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <button className="bg-white text-black rounded-full px-6 py-3 font-medium hover:opacity-90 transition cursor-pointer">
-          Browse Questions
-        </button>
-        <button className="border border-white rounded-full px-6 py-3 font-medium hover:bg-white hover:text-black transition cursor-pointer">
-          Ask a Question
-        </button>
-      </div>
-    </div>
+        {/* Action Buttons */}
+        <div className="flex flex-wrap justify-center gap-4 mb-10">
+          <Link
+            href="/questions"
+            className="rounded-xl bg-blue-600 text-white px-6 py-3 font-semibold shadow-md hover:bg-blue-700 transition"
+          >
+            Browse Questions
+          </Link>
+          <Link
+            href="/ask"
+            className="rounded-xl border border-blue-500 text-blue-600 px-6 py-3 font-semibold hover:bg-blue-50 dark:hover:bg-blue-950 transition"
+          >
+            Ask a Question
+          </Link>
+        </div>
+
+        {/* Mini Feature Icons */}
+        <div className="grid grid-cols-3 gap-8">
+          {[
+            {
+              icon: <IconQuestionMark className="h-8 w-8 text-blue-600" />,
+              label: "Learn",
+            },
+            {
+              icon: <IconMessageCircle className="h-8 w-8 text-blue-600" />,
+              label: "Share",
+            },
+            {
+              icon: <IconUsers className="h-8 w-8 text-blue-600" />,
+              label: "Connect",
+            },
+          ].map((item) => (
+            <motion.div
+              key={item.label}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="flex flex-col items-center gap-2"
+            >
+              {item.icon}
+              <span className="text-sm font-medium">{item.label}</span>
+            </motion.div>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Footer */}
+      <footer className="absolute bottom-4 text-xs text-gray-500 dark:text-gray-400">
+        © {new Date().getFullYear()} StackFlow. Built with ❤️ using Next.js +
+        Appwrite
+      </footer>
+    </main>
   );
 }
