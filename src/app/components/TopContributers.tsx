@@ -17,7 +17,7 @@ const Notification = ({ user }: { user: Models.User<UserPrefs> }) => (
     )}
   >
     <img
-      src={avatars.getInitials(user.name, 40, 40).href}
+      src={avatars.getInitials(user.name, 40, 40)}
       alt={user.name}
       className="rounded-xl size-10 sm:size-12"
     />
