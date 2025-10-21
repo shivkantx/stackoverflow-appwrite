@@ -12,29 +12,23 @@ import Link from "next/link";
 import React from "react";
 
 const Comments = ({
-  comments: initialComments,
+  comments: _comments,
   type,
   typeId,
   className,
 }: {
-  comments?: Models.DocumentList<Models.Document>;
+  comments: Models.DocumentList<Models.Document>;
   type: "question" | "answer";
   typeId: string;
   className?: string;
 }) => {
-  const [comments, setComments] = React.useState<
-    Models.DocumentList<Models.Document>
-  >({
-    total: initialComments?.total || 0,
-    documents: initialComments?.documents || [],
-  });
-
+  const [comments, setComments] = React.useState(_comments);
   const [newComment, setNewComment] = React.useState("");
   const { user } = useAuthStore();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!newComment.trim() || !user) return;
+    if (!newComment || !user) return;
 
     try {
       const response = await databases.createDocument(
@@ -42,20 +36,18 @@ const Comments = ({
         commentCollection,
         ID.unique(),
         {
-          content: newComment.trim(),
+          content: newComment,
           authorId: user.$id,
           type: type,
           typeId: typeId,
         }
       );
 
-      // Add new comment to state
+      setNewComment(() => "");
       setComments((prev) => ({
         total: prev.total + 1,
         documents: [{ ...response, author: user }, ...prev.documents],
       }));
-
-      setNewComment("");
     } catch (error: any) {
       window.alert(error?.message || "Error creating comment");
     }
@@ -78,60 +70,45 @@ const Comments = ({
 
   return (
     <div className={cn("flex flex-col gap-2 pl-4", className)}>
-      {/* ✅ Safe rendering */}
-      {comments.documents.length === 0 ? (
-        <p className="text-gray-400 text-sm">No comments yet.</p>
-      ) : (
-        comments.documents.map((comment) => (
-          <React.Fragment key={comment.$id}>
-            <hr className="border-white/40" />
-            <div className="flex gap-2 items-start">
-              <p className="text-sm leading-snug text-gray-200">
-                {comment.content} –{" "}
-                {comment.author ? (
-                  <Link
-                    href={`/users/${comment.authorId}/${slugify(
-                      comment.author.name || "user"
-                    )}`}
-                    className="text-orange-500 hover:text-orange-600"
-                  >
-                    {comment.author.name}
-                  </Link>
-                ) : (
-                  <span className="text-gray-500">Unknown user</span>
-                )}{" "}
-                <span className="opacity-60 text-xs">
-                  {convertDateToRelativeTime(new Date(comment.$createdAt))}
-                </span>
-              </p>
-
-              {user?.$id === comment.authorId && (
-                <button
-                  onClick={() => deleteComment(comment.$id)}
-                  className="shrink-0 text-red-500 hover:text-red-600"
-                  title="Delete comment"
-                >
-                  <IconTrash className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          </React.Fragment>
-        ))
-      )}
-
-      <hr className="border-white/40 mt-2" />
-      <form onSubmit={handleSubmit} className="flex items-center gap-2 mt-2">
+      {comments.documents.map((comment) => (
+        <React.Fragment key={comment.$id}>
+          <hr className="border-white/40" />
+          <div className="flex gap-2">
+            <p className="text-sm">
+              {comment.content} -{" "}
+              <Link
+                href={`/users/${comment.authorId}/${slugify(
+                  comment.author.name
+                )}`}
+                className="text-orange-500 hover:text-orange-600"
+              >
+                {comment.author.name}
+              </Link>{" "}
+              <span className="opacity-60">
+                {convertDateToRelativeTime(new Date(comment.$createdAt))}
+              </span>
+            </p>
+            {user?.$id === comment.authorId ? (
+              <button
+                onClick={() => deleteComment(comment.$id)}
+                className="shrink-0 text-red-500 hover:text-red-600"
+              >
+                <IconTrash className="h-4 w-4" />
+              </button>
+            ) : null}
+          </div>
+        </React.Fragment>
+      ))}
+      <hr className="border-white/40" />
+      <form onSubmit={handleSubmit} className="flex items-center gap-2">
         <textarea
-          className="w-full rounded-md border border-white/20 bg-white/10 p-2 text-white outline-none"
+          className="w-full rounded-md border border-white/20 bg-white/10 p-2 outline-none"
           rows={1}
           placeholder="Add a comment..."
           value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
+          onChange={(e) => setNewComment(() => e.target.value)}
         />
-        <button
-          type="submit"
-          className="shrink-0 rounded bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600"
-        >
+        <button className="shrink-0 rounded bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-600">
           Add Comment
         </button>
       </form>
