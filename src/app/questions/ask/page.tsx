@@ -24,7 +24,6 @@ export default function AskQuestionPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validation
     if (!title.trim() || !content.trim()) {
       setError("Title and content are required.");
       return;
@@ -50,12 +49,10 @@ export default function AskQuestionPage() {
           title,
           content,
           tags: tags.split(",").map((t) => t.trim()),
-          authorId: user.$id, // link to logged-in user
-          // removed createdAt to match your collection schema
+          authorId: user.$id,
         }
       );
 
-      // Generate a slug for URL
       const slug = title
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
@@ -72,7 +69,7 @@ export default function AskQuestionPage() {
   return (
     <>
       <Header />
-      <main className="container mx-auto px-4 py-8">
+      <main className="pt-[100px] container mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold mb-6">Ask a Question</h1>
 
         {error && <p className="text-red-500 mb-4">{error}</p>}
@@ -106,9 +103,18 @@ export default function AskQuestionPage() {
             />
           </div>
 
-          <ShimmerButton type="submit" className="mt-4" disabled={isSubmitting}>
-            {isSubmitting ? "Submitting..." : "Post Your Question"}
-          </ShimmerButton>
+          {/* Button aligned to right */}
+          <div className="flex justify-start">
+            <ShimmerButton
+              type="submit"
+              className="bg-orange-500 hover:bg-orange-600 relative overflow-hidden px-6 py-2 font-medium"
+              disabled={isSubmitting}
+            >
+              <span className=" text-white relative z-10">
+                {isSubmitting ? "Submitting..." : "Post Your Question"}
+              </span>
+            </ShimmerButton>
+          </div>
         </form>
       </main>
       <Footer />
