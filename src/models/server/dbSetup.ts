@@ -1,33 +1,48 @@
-import { db } from "../name";
-import createAnswerCollection from "./answer.collection";
-import createCommentCollection from "./comment.collection";
-import createQuestionCollection from "./question.collection";
-import createVoteCollection from "./vote.collection";
+"use server";
 
 import { databases } from "./config";
+import { db } from "../name";
+import createQuestionCollection from "./question.collection";
+import createAnswerCollection from "./answer.collection";
+import createCommentCollection from "./comment.collection";
+import createVoteCollection from "./vote.collection";
+import getOrCreateStorage from "./storageSetup";
 
-export default async function getOrCreateDB(){
+/**
+ * Ensures the main Appwrite database and all collections exist.
+ * Creates them if missing, and sets up storage.
+ */
+export default async function getOrCreateDB() {
   try {
-    await databases.get(db)
-    console.log("Database connection")
-  } catch (error) {
+    // Check if database already exists
+    await databases.get(db);
+    console.log("✅ Database connected");
+  } catch {
     try {
-      await databases.create(db, db)
-      console.log("database created")
-      //create collections
+      // Create database if it doesn't exist
+      console.log(`🚀 Creating new database: "${db}" ...`);
+      await databases.create(db, db);
+      console.log("✅ Database created successfully");
+
+      // Create all collections in parallel
       await Promise.all([
         createQuestionCollection(),
         createAnswerCollection(),
         createCommentCollection(),
         createVoteCollection(),
+      ]);
 
-      ])
-      console.log("Collection created")
-      console.log("Database connected")
+      console.log("✅ Collections created successfully");
+
+      // Setup storage bucket
+      await getOrCreateStorage();
+
+      console.log("✅ Storage connected");
+      console.log("✅ Appwrite setup complete");
     } catch (error) {
-      console.log("Error creating databases or collection", error)
+      console.error("❌ Error creating database or collections:", error);
     }
   }
 
-  return databases
+  return databases;
 }
