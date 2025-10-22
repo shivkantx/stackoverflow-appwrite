@@ -1,3 +1,4 @@
+// src/app/questions/page.tsx
 "use server";
 
 import { databases, users } from "@/models/server/config";
@@ -21,7 +22,7 @@ const Page = async ({
 }: {
   searchParams: Promise<{ page?: string; tag?: string; search?: string }>;
 }) => {
-  const searchParams = await searchParamsPromise; // ✅ Await first
+  const searchParams = await searchParamsPromise;
   searchParams.page ||= "1";
 
   const queries = [
@@ -44,7 +45,6 @@ const Page = async ({
     questionCollection,
     queries
   );
-  console.log("Questions", questions);
 
   questions.documents = await Promise.all(
     questions.documents.map(async (ques) => {
@@ -52,12 +52,12 @@ const Page = async ({
         users.get<UserPrefs>(ques.authorId),
         databases.listDocuments(db, answerCollection, [
           Query.equal("questionId", ques.$id),
-          Query.limit(1), // optimization
+          Query.limit(1),
         ]),
         databases.listDocuments(db, voteCollection, [
           Query.equal("type", "question"),
           Query.equal("typeId", ques.$id),
-          Query.limit(1), // optimization
+          Query.limit(1),
         ]),
       ]);
 
@@ -67,7 +67,7 @@ const Page = async ({
         totalVotes: votes.total,
         author: {
           $id: author.$id,
-          reputation: author.prefs.reputation,
+          reputation: author.prefs?.reputation || 0,
           name: author.name,
         },
       };
@@ -80,24 +80,27 @@ const Page = async ({
         <h1 className="text-3xl font-bold">All Questions</h1>
         <Link href="/questions/ask">
           <ShimmerButton className="shadow-2xl">
-            <span className="whitespace-pre-wrap text-center text-sm font-medium leading-none tracking-tight text-white dark:from-white dark:to-slate-900/10 lg:text-lg">
+            <span className="whitespace-pre-wrap text-center text-sm font-medium leading-none tracking-tight text-white lg:text-lg">
               Ask a question
             </span>
           </ShimmerButton>
         </Link>
       </div>
+
       <div className="mb-4">
         <Search />
       </div>
+
       <div className="mb-4">
         <p>{questions.total} questions</p>
       </div>
+
       <div className="mb-4 max-w-3xl space-y-6">
         {questions.documents.map((ques) => (
-          // cast to any because we've enriched the document at runtime
-          <QuestionCard key={ques.$id} ques={ques as any} />
+          <QuestionCard key={ques.$id} ques={ques} />
         ))}
       </div>
+
       <Pagination total={questions.total} limit={25} />
     </div>
   );
