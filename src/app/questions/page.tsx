@@ -1,4 +1,3 @@
-// src/app/questions/page.tsx
 "use server";
 
 import { databases, users } from "@/models/server/config";
@@ -16,6 +15,23 @@ import QuestionCard from "@/components/QuestionCard";
 import { UserPrefs } from "@/store/Auth";
 import Pagination from "@/components/Pagination";
 import Search from "./Search";
+
+// Inline type for Question document
+type QuestionDoc = {
+  $id: string;
+  $createdAt: string;
+  title: string;
+  content: string;
+  tags: string[];
+  authorId: string;
+  totalVotes: number;
+  totalAnswers: number;
+  author: {
+    $id: string;
+    name: string;
+    reputation: number;
+  };
+};
 
 const Page = async ({
   searchParams: searchParamsPromise,
@@ -40,14 +56,15 @@ const Page = async ({
       ])
     );
 
-  const questions = await databases.listDocuments(
+  const questionsRaw = await databases.listDocuments(
     db,
     questionCollection,
     queries
   );
 
-  questions.documents = await Promise.all(
-    questions.documents.map(async (ques) => {
+  // Map Appwrite documents to QuestionDoc with author and counts
+  const questions: QuestionDoc[] = await Promise.all(
+    questionsRaw.documents.map(async (ques) => {
       const [author, answers, votes] = await Promise.all([
         users.get<UserPrefs>(ques.authorId),
         databases.listDocuments(db, answerCollection, [
@@ -62,13 +79,18 @@ const Page = async ({
       ]);
 
       return {
-        ...ques,
+        $id: ques.$id,
+        $createdAt: ques.$createdAt,
+        title: (ques as any).title,
+        content: (ques as any).content,
+        tags: (ques as any).tags || [],
+        authorId: ques.authorId,
         totalAnswers: answers.total,
         totalVotes: votes.total,
         author: {
           $id: author.$id,
-          reputation: author.prefs?.reputation || 0,
           name: author.name,
+          reputation: author.prefs?.reputation || 0,
         },
       };
     })
@@ -92,16 +114,16 @@ const Page = async ({
       </div>
 
       <div className="mb-4">
-        <p>{questions.total} questions</p>
+        <p>{questionsRaw.total} questions</p>
       </div>
 
       <div className="mb-4 max-w-3xl space-y-6">
-        {questions.documents.map((ques) => (
+        {questions.map((ques) => (
           <QuestionCard key={ques.$id} ques={ques} />
         ))}
       </div>
 
-      <Pagination total={questions.total} limit={25} />
+      <Pagination total={questionsRaw.total} limit={25} />
     </div>
   );
 };
