@@ -1,4 +1,3 @@
-// src/components/Comments.tsx
 "use client";
 
 import { databases } from "@/models/client/config";
@@ -12,19 +11,34 @@ import { ID, Models } from "appwrite";
 import Link from "next/link";
 import React from "react";
 
+// Define the type of a comment document
+interface CommentDoc extends Models.Document {
+  content: string;
+  type: "question" | "answer";
+  typeId: string;
+  authorId: string;
+  author?: {
+    $id: string;
+    name: string;
+    reputation?: number;
+  };
+}
+
+interface CommentsProps {
+  comments?: Models.DocumentList<CommentDoc>;
+  type: "question" | "answer";
+  typeId: string;
+  className?: string;
+}
+
 const Comments = ({
   comments: initialComments,
   type,
   typeId,
   className,
-}: {
-  comments?: Models.DocumentList<Models.Document>;
-  type: "question" | "answer";
-  typeId: string;
-  className?: string;
-}) => {
+}: CommentsProps) => {
   const [comments, setComments] = React.useState<
-    Models.DocumentList<Models.Document>
+    Models.DocumentList<CommentDoc>
   >({
     total: initialComments?.total || 0,
     documents: initialComments?.documents || [],
@@ -50,9 +64,19 @@ const Comments = ({
         }
       );
 
+      // build a properly-typed CommentDoc with a minimal author shape
+      const newCommentDoc: CommentDoc = {
+        ...(response as unknown as CommentDoc),
+        author: {
+          $id: user.$id,
+          name: (user as any).name || "user",
+          reputation: (user as any).reputation,
+        },
+      };
+
       setComments((prev) => ({
         total: prev.total + 1,
-        documents: [{ ...response, author: user }, ...prev.documents],
+        documents: [newCommentDoc, ...prev.documents],
       }));
       setNewComment("");
     } catch (error: any) {
