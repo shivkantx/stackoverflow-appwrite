@@ -1,20 +1,13 @@
+// src/models/server/config.ts
 import env from "@/app/env";
+import { Client, Databases, Users, Storage, Avatars } from "node-appwrite";
 
-import {Avatars, Client, Databases, Storage, Users} from "node-appwrite"
+const client = new Client()
+  .setEndpoint(env.appwrite.endpoint) // e.g. https://fra.cloud.appwrite.io/v1
+  .setProject(env.appwrite.projectId)
+  .setKey(env.appwrite.apikey); // server key: APPWRITE_API_KEY
 
-let client = new Client();
-
-client
-    .setEndpoint(env.appwrite.endpoint) // Your API Endpoint
-    .setProject(env.appwrite.projectId) // Your project ID
-    .setKey(env.appwrite.apikey) // Your secret API key
-    
-;
-
-const databases = new Databases(client)
-const avatars = new Avatars(client);
-const storage = new Storage(client);
-const users = new Users(client)
-
-
-export { client, databases, users, avatars, storage}
+export const databases = new Databases(client);
+export const users = new Users(client);
+export const storage = new Storage(client);
+export const avatars = new Avatars(client);
