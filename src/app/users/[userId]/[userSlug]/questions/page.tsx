@@ -11,13 +11,12 @@ import { UserPrefs } from "@/store/Auth";
 import { Query } from "node-appwrite";
 import React from "react";
 
-const Page = async ({
-  params,
-  searchParams,
-}: {
-  params: { userId: string; userSlug: string };
-  searchParams: { page?: string };
+const Page = async (props: {
+  params: Promise<{ userId: string; userSlug: string }>;
+  searchParams?: Promise<{ page?: string }>; // <-- make it a promise
 }) => {
+  const params = await props.params;
+  const searchParams = props.searchParams ? await props.searchParams : {};
   const userId = params.userId;
   const page = parseInt(searchParams?.page || "1", 10);
 
@@ -34,8 +33,8 @@ const Page = async ({
     queries
   );
 
-  questions.documents = await Promise.all(
-    questions.documents.map(async (ques) => {
+  const enrichedQuestions = await Promise.all(
+    (questions.documents || []).map(async (ques) => {
       const [author, answers, votes] = await Promise.all([
         users.get<UserPrefs>(ques.authorId),
         databases.listDocuments(db, answerCollection, [
@@ -55,20 +54,21 @@ const Page = async ({
         totalVotes: votes.total,
         author: {
           $id: author.$id,
-          reputation: author.prefs?.reputation || 0,
           name: author.name,
+          reputation: author.prefs?.reputation || 0,
         },
       };
     })
   );
 
   return (
-    <div className="px-4">
+    <div className="container mx-auto px-4 pb-20 pt-36">
       <div className="mb-4">
         <p>{questions.total} questions</p>
       </div>
+
       <div className="mb-4 max-w-3xl space-y-6">
-        {questions.documents.map((ques) => (
+        {enrichedQuestions.map((ques) => (
           <QuestionCard
             key={ques.$id}
             ques={ques}
@@ -76,7 +76,8 @@ const Page = async ({
           />
         ))}
       </div>
-      <Pagination total={questions.total} limit={25} />
+
+      <Pagination total={questions.total} limit={25} page={page} />
     </div>
   );
 };

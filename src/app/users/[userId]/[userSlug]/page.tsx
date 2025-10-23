@@ -7,13 +7,16 @@ import { UserPrefs } from "@/store/Auth";
 import { answerCollection, db, questionCollection } from "@/models/name";
 import { Query } from "node-appwrite";
 
-const Page = async ({
-  params: paramsPromise,
-}: {
+const Page = async (props: {
   params: Promise<{ userId: string; userSlug: string }>;
+  searchParams?: Promise<{ page?: string }>;
 }) => {
-  const params = await paramsPromise;
+  // ✅ Await both params and searchParams
+  const params = await props.params;
+  const searchParams = props.searchParams ? await props.searchParams : {};
+
   const userId = params.userId;
+  const page = parseInt(searchParams.page || "1", 10);
 
   const [user, questions, answers] = await Promise.all([
     users.get<UserPrefs>(userId),

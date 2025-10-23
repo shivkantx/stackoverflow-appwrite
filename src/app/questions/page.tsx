@@ -1,5 +1,3 @@
-"use cleint";
-
 import { databases, users } from "@/models/server/config";
 import {
   answerCollection,
@@ -16,34 +14,17 @@ import { UserPrefs } from "@/store/Auth";
 import Pagination from "@/components/Pagination";
 import Search from "./Search";
 
-// Inline type for Question document
-type QuestionDoc = {
-  $id: string;
-  $createdAt: string;
-  title: string;
-  content: string;
-  tags: string[];
-  authorId: string;
-  totalVotes: number;
-  totalAnswers: number;
-  author: {
-    $id: string;
-    name: string;
-    reputation: number;
-  };
-};
-
-const Page = async ({
-  searchParams: searchParamsPromise,
-}: {
+const Page = async (props: {
   searchParams: Promise<{ page?: string; tag?: string; search?: string }>;
 }) => {
-  const searchParams = await searchParamsPromise;
-  searchParams.page ||= "1";
+  // ✅ Await searchParams first
+  const searchParams = await props.searchParams;
+
+  const page = searchParams.page || "1";
 
   const queries = [
     Query.orderDesc("$createdAt"),
-    Query.offset((+searchParams.page - 1) * 25),
+    Query.offset((+page - 1) * 25),
     Query.limit(25),
   ];
 
@@ -56,20 +37,14 @@ const Page = async ({
       ])
     );
 
-  const questionsRaw = await databases.listDocuments(
+  const questions = await databases.listDocuments(
     db,
     questionCollection,
     queries
   );
 
-  // Map Appwrite documents to QuestionDoc with author and counts
-  const questions: (QuestionDoc | null)[] = await Promise.all(
-    questionsRaw.documents.map(async (ques) => {
-      if (!ques.authorId) {
-        console.warn("Skipping question without authorId:", ques.$id);
-        return null;
-      }
-
+  questions.documents = await Promise.all(
+    questions.documents.map(async (ques) => {
       const [author, answers, votes] = await Promise.all([
         users.get<UserPrefs>(ques.authorId),
         databases.listDocuments(db, answerCollection, [
@@ -84,26 +59,16 @@ const Page = async ({
       ]);
 
       return {
-        $id: ques.$id,
-        $createdAt: ques.$createdAt,
-        title: (ques as any).title,
-        content: (ques as any).content,
-        tags: (ques as any).tags || [],
-        authorId: ques.authorId,
+        ...ques,
         totalAnswers: answers.total,
         totalVotes: votes.total,
         author: {
           $id: author.$id,
+          reputation: author.prefs.reputation,
           name: author.name,
-          reputation: author.prefs?.reputation || 0,
         },
-      } as QuestionDoc;
+      };
     })
-  );
-
-  // Filter out any nulls
-  const filteredQuestions = questions.filter(
-    (q): q is QuestionDoc => q !== null
   );
 
   return (
@@ -112,28 +77,24 @@ const Page = async ({
         <h1 className="text-3xl font-bold">All Questions</h1>
         <Link href="/questions/ask">
           <ShimmerButton className="shadow-2xl">
-            <span className="whitespace-pre-wrap text-center text-sm font-medium leading-none tracking-tight text-white lg:text-lg">
+            <span className="whitespace-pre-wrap text-center text-sm font-medium leading-none tracking-tight text-white dark:from-white dark:to-slate-900/10 lg:text-lg">
               Ask a question
             </span>
           </ShimmerButton>
         </Link>
       </div>
-
       <div className="mb-4">
         <Search />
       </div>
-
       <div className="mb-4">
-        <p>{questionsRaw.total} questions</p>
+        <p>{questions.total} questions</p>
       </div>
-
       <div className="mb-4 max-w-3xl space-y-6">
-        {filteredQuestions.map((ques) => (
+        {questions.documents.map((ques) => (
           <QuestionCard key={ques.$id} ques={ques} />
         ))}
       </div>
-
-      <Pagination total={questionsRaw.total} limit={25} />
+      <Pagination total={questions.total} limit={25} />
     </div>
   );
 };
