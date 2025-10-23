@@ -11,8 +11,8 @@ import { ID, Models } from "appwrite";
 import Link from "next/link";
 import React from "react";
 
-// Define the type of a comment document
-interface CommentDoc extends Models.Document {
+// Define a type for the comment document
+export interface CommentDoc extends Models.Document {
   content: string;
   type: "question" | "answer";
   typeId: string;
@@ -59,18 +59,18 @@ const Comments = ({
         {
           content: newComment.trim(),
           authorId: user.$id,
-          type: type,
-          typeId: typeId,
+          type,
+          typeId,
         }
       );
 
-      // build a properly-typed CommentDoc with a minimal author shape
+      // Fix TS type issue by casting via unknown
       const newCommentDoc: CommentDoc = {
         ...(response as unknown as CommentDoc),
         author: {
           $id: user.$id,
           name: (user as any).name || "user",
-          reputation: (user as any).reputation,
+          reputation: (user as any).reputation || 0,
         },
       };
 
@@ -110,7 +110,7 @@ const Comments = ({
                 {comment.author ? (
                   <Link
                     href={`/users/${comment.authorId}/${slugify(
-                      comment.author.name || "user"
+                      comment.author.name
                     )}`}
                     className="text-orange-500 hover:text-orange-600"
                   >

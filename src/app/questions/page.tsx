@@ -1,4 +1,4 @@
-"use server";
+"use cleint";
 
 import { databases, users } from "@/models/server/config";
 import {
@@ -63,8 +63,13 @@ const Page = async ({
   );
 
   // Map Appwrite documents to QuestionDoc with author and counts
-  const questions: QuestionDoc[] = await Promise.all(
+  const questions: (QuestionDoc | null)[] = await Promise.all(
     questionsRaw.documents.map(async (ques) => {
+      if (!ques.authorId) {
+        console.warn("Skipping question without authorId:", ques.$id);
+        return null;
+      }
+
       const [author, answers, votes] = await Promise.all([
         users.get<UserPrefs>(ques.authorId),
         databases.listDocuments(db, answerCollection, [
@@ -92,8 +97,13 @@ const Page = async ({
           name: author.name,
           reputation: author.prefs?.reputation || 0,
         },
-      };
+      } as QuestionDoc;
     })
+  );
+
+  // Filter out any nulls
+  const filteredQuestions = questions.filter(
+    (q): q is QuestionDoc => q !== null
   );
 
   return (
@@ -118,7 +128,7 @@ const Page = async ({
       </div>
 
       <div className="mb-4 max-w-3xl space-y-6">
-        {questions.map((ques) => (
+        {filteredQuestions.map((ques) => (
           <QuestionCard key={ques.$id} ques={ques} />
         ))}
       </div>

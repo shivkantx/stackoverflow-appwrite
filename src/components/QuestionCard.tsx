@@ -6,9 +6,8 @@ import { BorderBeam } from "./magicui/border-beam";
 import Link from "next/link";
 import { Models } from "appwrite";
 import slugify from "@/utils/slugify";
-import { avatars } from "@/models/client/config";
+import { avatars, databases } from "@/models/client/config";
 import convertDateToRelativeTime from "@/utils/relativeTime";
-import { databases } from "@/models/client/config";
 import { db, questionCollection } from "@/models/name";
 
 interface QuestionCardProps {
