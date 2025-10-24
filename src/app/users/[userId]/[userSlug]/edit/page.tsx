@@ -1,12 +1,19 @@
 import React from "react";
+import EditQues from "./EditQues"; // relative import
+import { databases } from "@/models/server/config";
+import { db, questionCollection } from "@/models/name";
 
-const Page = () => {
-    return (
-        <div className="container mx-auto space-y-4 px-4 pb-20 pt-32">
-            <h1>Edit</h1>
-            <h2>Homework</h2>
-        </div>
-    );
+const Page = async (props: {
+  params: Promise<{ quesId: string; quesName: string }>;
+}) => {
+  const params = await props.params; // ✅ await params
+  const question = await databases.getDocument(
+    db,
+    questionCollection,
+    params.quesId
+  );
+
+  return <EditQues question={question} />;
 };
 
 export default Page;
