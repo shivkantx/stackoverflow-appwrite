@@ -46,7 +46,7 @@ export default function Home() {
             size="lg"
             variant="outline"
             className="cursor-pointer rounded-2xl border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white px-8 py-6 text-lg"
-            onClick={() => router.push("/questions/add")}
+            onClick={() => router.push("/questions/ask")}
           >
             Ask Question
           </Button>
