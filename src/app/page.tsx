@@ -52,6 +52,10 @@ export default function Home() {
           </Button>
         </div>
       </motion.div>
+      {/* Footer / Signature */}
+      <div className="absolute bottom-4 text-gray-400 text-sm text-center w-full z-10">
+        Crafted with ❤️ by <span className="font-semibold">Shiv Kant</span>
+      </div>
 
       <div className="absolute bottom-10 flex justify-center">
         <IconCloud
