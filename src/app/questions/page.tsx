@@ -17,9 +17,7 @@ import Search from "./Search";
 const Page = async (props: {
   searchParams: Promise<{ page?: string; tag?: string; search?: string }>;
 }) => {
-  // ✅ Await searchParams first
   const searchParams = await props.searchParams;
-
   const page = searchParams.page || "1";
 
   const queries = [
@@ -72,13 +70,13 @@ const Page = async (props: {
   );
 
   return (
-    <div className="flex flex-col items-center px-4 pb-20 pt-36">
+    <div className="flex flex-col items-center px-4 pb-20 pt-28">
       {/* Header */}
-      <div className="mb-10 w-full max-w-4xl flex flex-col md:flex-row items-center justify-between">
-        <h1 className="text-3xl font-bold mb-4 md:mb-0">All Questions</h1>
+      <div className="mb-10 w-full max-w-5xl flex flex-col md:flex-row items-center justify-between gap-4">
+        <h1 className="text-3xl font-bold">All Questions</h1>
         <Link href="/questions/ask">
-          <ShimmerButton className="shadow-2xl">
-            <span className="whitespace-pre-wrap text-center text-sm font-medium leading-none tracking-tight text-white dark:from-white dark:to-slate-900/10 lg:text-lg">
+          <ShimmerButton className="shadow-2xl px-4 py-2">
+            <span className="whitespace-pre-wrap text-center text-sm font-medium lg:text-lg text-white">
               Ask a question
             </span>
           </ShimmerButton>
@@ -86,24 +84,29 @@ const Page = async (props: {
       </div>
 
       {/* Search */}
-      <div className="mb-4 w-full max-w-4xl">
+      <div className="mb-6 w-full max-w-5xl">
         <Search />
       </div>
 
       {/* Total questions */}
-      <div className="mb-4 w-full max-w-4xl">
-        <p>{questions.total} questions</p>
+      <div className="mb-6 w-full max-w-5xl text-gray-400 font-medium">
+        {questions.total} question{questions.total !== 1 ? "s" : ""}
       </div>
 
-      {/* Question list */}
-      <div className="mb-4 w-full max-w-4xl space-y-6">
+      {/* Questions list */}
+      <div className="mb-6 w-full max-w-5xl flex flex-col gap-6">
         {questions.documents.map((ques) => (
-          <QuestionCard key={ques.$id} ques={ques} />
+          <div
+            key={ques.$id}
+            className="bg-white/5 dark:bg-gray-800 rounded-xl shadow-md p-6 hover:shadow-xl transition-shadow duration-200"
+          >
+            <QuestionCard ques={ques} />
+          </div>
         ))}
       </div>
 
       {/* Pagination */}
-      <div className="w-full max-w-4xl">
+      <div className="w-full max-w-5xl">
         <Pagination total={questions.total} limit={25} />
       </div>
     </div>

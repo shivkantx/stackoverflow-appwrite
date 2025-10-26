@@ -19,6 +19,7 @@ export default function Home() {
     <main className="relative flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-gray-950 via-gray-900 to-black text-white">
       <Meteors number={30} />
 
+      {/* Hero Section */}
       <motion.div
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
@@ -29,15 +30,17 @@ export default function Home() {
           Welcome to StackFlow
         </h1>
         <p className="mt-4 max-w-2xl text-lg text-gray-300">
-          A place where developers ask, answer, and grow together. Built with ❤️
-          using Next.js, Appwrite, and Tailwind. Made by{" "}
-          <strong>Shiv Kant</strong>.
+          A vibrant community where developers ask, answer, and grow together.
+          Explore projects, learn new technologies, and join discussions built
+          with <span className="font-semibold text-indigo-400">Next.js</span>,{" "}
+          <span className="font-semibold text-purple-400">Appwrite</span>, and{" "}
+          <span className="font-semibold text-cyan-400">Tailwind CSS</span>.
         </p>
 
-        <div className="mt-8 flex gap-4">
+        <div className="mt-8 flex flex-wrap justify-center gap-4">
           <Button
             size="lg"
-            className="cursor-pointer rounded-2xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-8 py-6 text-lg"
+            className="cursor-pointer rounded-2xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white px-8 py-6 text-lg transition-transform duration-200 hover:scale-105"
             onClick={() => router.push("/questions")}
           >
             Explore Questions
@@ -45,19 +48,36 @@ export default function Home() {
           <Button
             size="lg"
             variant="outline"
-            className="cursor-pointer rounded-2xl border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white px-8 py-6 text-lg"
+            className="cursor-pointer rounded-2xl border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white px-8 py-6 text-lg transition-transform duration-200 hover:scale-105"
             onClick={() => router.push("/questions/ask")}
           >
             Ask Question
           </Button>
         </div>
       </motion.div>
-      {/* Footer / Signature */}
-      <div className="absolute bottom-4 text-gray-400 text-sm text-center w-full z-10">
-        Crafted with ❤️ by <span className="font-semibold">Shiv Kant</span>
-      </div>
 
-      <div className="absolute bottom-10 flex justify-center">
+      {/* Footer / Signature */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 1.2, delay: 0.5 }}
+        className="absolute bottom-4 w-full flex flex-col items-center justify-center z-10 px-4 text-center"
+      >
+        <p className="text-gray-400 text-sm sm:text-base">
+          Crafted with <span className="text-red-500 animate-pulse">❤️</span>{" "}
+          and code by{" "}
+          <span className="font-bold bg-gradient-to-r from-purple-400 via-pink-500 to-indigo-400 bg-clip-text text-transparent hover:scale-110 transition-transform duration-300">
+            Shiv Kant
+          </span>
+        </p>
+        <p className="text-gray-500 text-xs sm:text-sm mt-1">
+          Powering developer communities with passion, Next.js, Appwrite &
+          Tailwind CSS.
+        </p>
+      </motion.div>
+
+      {/* Floating Icon Cloud */}
+      <div className="absolute bottom-20 flex justify-center">
         <IconCloud
           iconSlugs={[
             "react",

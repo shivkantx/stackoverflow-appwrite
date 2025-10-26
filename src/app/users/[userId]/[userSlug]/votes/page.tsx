@@ -1,5 +1,10 @@
 import Pagination from "@/components/Pagination";
-import { answerCollection, db, questionCollection, voteCollection } from "@/models/name";
+import {
+  answerCollection,
+  db,
+  questionCollection,
+  voteCollection,
+} from "@/models/name";
 import { databases } from "@/models/server/config";
 import convertDateToRelativeTime from "@/utils/relativeTime";
 import slugify from "@/utils/slugify";
@@ -7,124 +12,126 @@ import Link from "next/link";
 import { Query } from "node-appwrite";
 import React from "react";
 
-const Page = async ({
-    params,
-    searchParams,
-}: {
-    params: { userId: string; userSlug: string };
-    searchParams: { page?: string; voteStatus?: "upvoted" | "downvoted" };
+const Page = async (props: {
+  params: Promise<{ userId: string; userSlug: string }>;
+  searchParams?: Promise<{
+    page?: string;
+    voteStatus?: "upvoted" | "downvoted";
+  }>;
 }) => {
-    searchParams.page ||= "1";
+  // ✅ Await dynamic route and searchParams
+  const { params, searchParams: rawSearchParams } = props;
+  const awaitedParams = await params;
+  const awaitedSearchParams = rawSearchParams ? await rawSearchParams : {};
 
-    const query = [
-        Query.equal("votedById", params.userId),
-        Query.orderDesc("$createdAt"),
-        Query.offset((+searchParams.page - 1) * 25),
-        Query.limit(25),
-    ];
+  const page = parseInt(awaitedSearchParams.page || "1", 10);
+  const voteStatus = awaitedSearchParams.voteStatus;
 
-    if (searchParams.voteStatus) query.push(Query.equal("voteStatus", searchParams.voteStatus));
+  // Build query
+  const query = [
+    Query.equal("votedById", awaitedParams.userId),
+    Query.orderDesc("$createdAt"),
+    Query.offset((page - 1) * 25),
+    Query.limit(25),
+  ];
 
-    const votes = await databases.listDocuments(db, voteCollection, query);
+  if (voteStatus) query.push(Query.equal("voteStatus", voteStatus));
 
-    votes.documents = await Promise.all(
-        votes.documents.map(async vote => {
-            const questionOfTypeQuestion =
-                vote.type === "question"
-                    ? await databases.getDocument(db, questionCollection, vote.typeId, [
-                          Query.select(["title"]),
-                      ])
-                    : null;
+  // Fetch votes
+  const votes = await databases.listDocuments(db, voteCollection, query);
 
-            if (questionOfTypeQuestion) {
-                return {
-                    ...vote,
-                    question: questionOfTypeQuestion,
-                };
-            }
+  // Populate votes with question info
+  const votesWithQuestions = await Promise.all(
+    votes.documents.map(async (vote) => {
+      try {
+        if (vote.type === "question") {
+          const question = await databases.getDocument(
+            db,
+            questionCollection,
+            vote.typeId,
+            [Query.select(["title"])]
+          );
+          return { ...vote, question };
+        } else {
+          const answer = await databases.getDocument(
+            db,
+            answerCollection,
+            vote.typeId
+          );
+          const question = await databases.getDocument(
+            db,
+            questionCollection,
+            answer.questionId,
+            [Query.select(["title"])]
+          );
+          return { ...vote, question };
+        }
+      } catch (err) {
+        // Handle deleted question/answer
+        return {
+          ...vote,
+          question: { $id: "deleted", title: "Deleted question" },
+        };
+      }
+    })
+  );
 
-            const answer = await databases.getDocument(db, answerCollection, vote.typeId);
-            const questionOfTypeAnswer = await databases.getDocument(
-                db,
-                questionCollection,
-                answer.questionId,
-                [Query.select(["title"])]
-            );
+  return (
+    <div className="px-4 md:px-6 lg:px-16 pt-12 md:pt-16 lg:pt-8 w-full max-w-6xl mx-auto">
+      {/* Header */}
+      <div className="mb-4 flex flex-col md:flex-row items-start justify-between gap-4">
+        <p className="text-lg font-medium">{votes.total} votes</p>
+        <ul className="flex gap-2">
+          {["", "upvoted", "downvoted"].map((status) => (
+            <li key={status}>
+              <Link
+                href={`/users/${awaitedParams.userId}/${
+                  awaitedParams.userSlug
+                }/votes${status ? `?voteStatus=${status}` : ""}`}
+                className={`block rounded-full px-3 py-1 duration-200 ${
+                  voteStatus === status || (!voteStatus && status === "")
+                    ? "bg-white/20"
+                    : "hover:bg-white/10"
+                }`}
+              >
+                {status === ""
+                  ? "All"
+                  : status.charAt(0).toUpperCase() + status.slice(1)}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
 
-            return {
-                ...vote,
-                question: questionOfTypeAnswer,
-            };
-        })
-    );
-
-    return (
-        <div className="px-4">
-            <div className="mb-4 flex justify-between">
-                <p>{votes.total} votes</p>
-                <ul className="flex gap-1">
-                    <li>
-                        <Link
-                            href={`/users/${params.userId}/${params.userSlug}/votes`}
-                            className={`block w-full rounded-full px-3 py-0.5 duration-200 ${
-                                !searchParams.voteStatus ? "bg-white/20" : "hover:bg-white/20"
-                            }`}
-                        >
-                            All
-                        </Link>
-                    </li>
-                    <li>
-                        <Link
-                            href={`/users/${params.userId}/${params.userSlug}/votes?voteStatus=upvoted`}
-                            className={`block w-full rounded-full px-3 py-0.5 duration-200 ${
-                                searchParams?.voteStatus === "upvoted"
-                                    ? "bg-white/20"
-                                    : "hover:bg-white/20"
-                            }`}
-                        >
-                            Upvotes
-                        </Link>
-                    </li>
-                    <li>
-                        <Link
-                            href={`/users/${params.userId}/${params.userSlug}/votes?voteStatus=downvoted`}
-                            className={`block w-full rounded-full px-3 py-0.5 duration-200 ${
-                                searchParams?.voteStatus === "downvoted"
-                                    ? "bg-white/20"
-                                    : "hover:bg-white/20"
-                            }`}
-                        >
-                            Downvotes
-                        </Link>
-                    </li>
-                </ul>
+      {/* Votes list */}
+      <div className="flex flex-col gap-4 mb-6">
+        {votesWithQuestions.map((vote) => (
+          <div
+            key={vote.$id}
+            className="rounded-xl border border-white/40 p-4 md:p-6 duration-200 hover:bg-white/10"
+          >
+            <div className="flex justify-between items-center">
+              <Link
+                href={`/questions/${vote.question.$id}/${slugify(
+                  vote.question.title
+                )}`}
+                className="text-orange-500 font-medium hover:text-orange-600"
+              >
+                {vote.question.title}
+              </Link>
+              <p className="text-sm text-gray-400">{vote.voteStatus}</p>
             </div>
-            <div className="mb-4 max-w-3xl space-y-6">
-                {votes.documents.map(vote => (
-                    <div
-                        key={vote.$id}
-                        className="rounded-xl border border-white/40 p-4 duration-200 hover:bg-white/10"
-                    >
-                        <div className="flex">
-                            <p className="mr-4 shrink-0">{vote.voteStatus}</p>
-                            <p>
-                                <Link
-                                    href={`/questions/${vote.question.$id}/${slugify(vote.question.title)}`}
-                                    className="text-orange-500 hover:text-orange-600"
-                                >
-                                    {vote.question.title}
-                                </Link>
-                            </p>
-                        </div>
-                        <p className="text-right text-sm">
-                            {convertDateToRelativeTime(new Date(vote.$createdAt))}
-                        </p>
-                    </div>
-                ))}
-            </div>
-            <Pagination total={votes.total} limit={25} />
-        </div>
-    );
+            <p className="text-right text-sm text-gray-400 mt-1">
+              {convertDateToRelativeTime(new Date(vote.$createdAt))}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Pagination */}
+      <Pagination total={votes.total} limit={25} page={page} />
+    </div>
+  );
 };
 
 export default Page;
