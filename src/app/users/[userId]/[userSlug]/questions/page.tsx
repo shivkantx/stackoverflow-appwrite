@@ -1,19 +1,19 @@
-import Pagination from "@/components/Pagination";
-import QuestionCard from "@/components/QuestionCard";
+import React from "react";
+import { Query } from "node-appwrite";
+import { databases, users } from "@/models/server/config";
 import {
-  answerCollection,
   db,
   questionCollection,
+  answerCollection,
   voteCollection,
 } from "@/models/name";
-import { databases, users } from "@/models/server/config";
 import { UserPrefs } from "@/store/Auth";
-import { Query } from "node-appwrite";
-import React from "react";
+import QuestionCard from "@/components/QuestionCard";
+import Pagination from "@/components/Pagination";
 
 const Page = async (props: {
   params: Promise<{ userId: string; userSlug: string }>;
-  searchParams?: Promise<{ page?: string }>; // <-- make it a promise
+  searchParams?: Promise<{ page?: string }>;
 }) => {
   const params = await props.params;
   const searchParams = props.searchParams ? await props.searchParams : {};
@@ -62,22 +62,29 @@ const Page = async (props: {
   );
 
   return (
-    <div className="container mx-auto px-4 pb-20 pt-36">
-      <div className="mb-4">
-        <p>{questions.total} questions</p>
+    <div className="px-4 md:px-6 lg:px-16 pt-12 md:pt-16 lg:pt-8 w-full max-w-6xl mx-auto">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold">User Questions</h1>
+        <p className="mt-1 text-gray-400">{questions.total} questions</p>
       </div>
 
-      <div className="mb-4 max-w-3xl space-y-6">
+      {/* Questions list */}
+      <div className="flex flex-col gap-6">
         {enrichedQuestions.map((ques) => (
-          <QuestionCard
+          <div
             key={ques.$id}
-            ques={ques}
-            currentUser={{ $id: userId }}
-          />
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 md:p-6"
+          >
+            <QuestionCard ques={ques} currentUser={{ $id: userId }} />
+          </div>
         ))}
       </div>
 
-      <Pagination total={questions.total} limit={25} page={page} />
+      {/* Pagination */}
+      <div className="mt-8">
+        <Pagination total={questions.total} limit={25} page={page} />
+      </div>
     </div>
   );
 };

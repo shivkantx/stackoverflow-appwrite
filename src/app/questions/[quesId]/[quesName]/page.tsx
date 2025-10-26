@@ -28,10 +28,9 @@ import { TracingBeam } from "@/components/ui/tracing-beam";
 const Page = async (props: {
   params: Promise<{ quesId: string; quesName: string }>;
 }) => {
-  // ✅ Await params first
   const { quesId } = await props.params;
 
-  // Fetch main question, votes, answers, comments
+  // Fetch question, votes, answers, comments
   const [question, answers, upvotes, downvotes, comments] = await Promise.all([
     databases.getDocument(db, questionCollection, quesId),
     databases.listDocuments(db, answerCollection, [
@@ -57,78 +56,117 @@ const Page = async (props: {
     ]),
   ]);
 
-  const author = await users.get<UserPrefs>(question.authorId);
+  // Safely fetch author
+  let author: any;
+  try {
+    author = await users.get<UserPrefs>(question.authorId);
+  } catch {
+    author = {
+      $id: "deleted",
+      name: "Deleted User",
+      prefs: { reputation: 0 },
+    };
+  }
 
   // Populate comment authors and answer authors
   [comments.documents, answers.documents] = await Promise.all([
     Promise.all(
       comments.documents.map(async (comment) => {
-        const cAuthor = await users.get<UserPrefs>(comment.authorId);
-        return {
-          ...comment,
-          author: {
-            $id: cAuthor.$id,
-            name: cAuthor.name,
-            reputation: cAuthor.prefs.reputation,
-          },
-        };
+        try {
+          const cAuthor = await users.get<UserPrefs>(comment.authorId);
+          return {
+            ...comment,
+            author: {
+              $id: cAuthor.$id,
+              name: cAuthor.name,
+              reputation: cAuthor.prefs.reputation,
+            },
+          };
+        } catch {
+          return {
+            ...comment,
+            author: { $id: "deleted", name: "Deleted User", reputation: 0 },
+          };
+        }
       })
     ),
     Promise.all(
       answers.documents.map(async (answer) => {
-        const [aAuthor, answerComments, answerUpvotes, answerDownvotes] =
-          await Promise.all([
-            users.get<UserPrefs>(answer.authorId),
-            databases.listDocuments(db, commentCollection, [
-              Query.equal("typeId", answer.$id),
-              Query.equal("type", "answer"),
-              Query.orderDesc("$createdAt"),
-            ]),
-            databases.listDocuments(db, voteCollection, [
-              Query.equal("typeId", answer.$id),
-              Query.equal("type", "answer"),
-              Query.equal("voteStatus", "upvoted"),
-              Query.limit(1),
-            ]),
-            databases.listDocuments(db, voteCollection, [
-              Query.equal("typeId", answer.$id),
-              Query.equal("type", "answer"),
-              Query.equal("voteStatus", "downvoted"),
-              Query.limit(1),
-            ]),
-          ]);
+        try {
+          const [aAuthor, answerComments, answerUpvotes, answerDownvotes] =
+            await Promise.all([
+              users.get<UserPrefs>(answer.authorId),
+              databases.listDocuments(db, commentCollection, [
+                Query.equal("typeId", answer.$id),
+                Query.equal("type", "answer"),
+                Query.orderDesc("$createdAt"),
+              ]),
+              databases.listDocuments(db, voteCollection, [
+                Query.equal("typeId", answer.$id),
+                Query.equal("type", "answer"),
+                Query.equal("voteStatus", "upvoted"),
+                Query.limit(1),
+              ]),
+              databases.listDocuments(db, voteCollection, [
+                Query.equal("typeId", answer.$id),
+                Query.equal("type", "answer"),
+                Query.equal("voteStatus", "downvoted"),
+                Query.limit(1),
+              ]),
+            ]);
 
-        answerComments.documents = await Promise.all(
-          answerComments.documents.map(async (c) => {
-            const cAuthor = await users.get<UserPrefs>(c.authorId);
-            return {
-              ...c,
-              author: {
-                $id: cAuthor.$id,
-                name: cAuthor.name,
-                reputation: cAuthor.prefs.reputation,
-              },
-            };
-          })
-        );
+          // Attach comments to answers
+          answerComments.documents = await Promise.all(
+            answerComments.documents.map(async (c) => {
+              try {
+                const cAuthor = await users.get<UserPrefs>(c.authorId);
+                return {
+                  ...c,
+                  author: {
+                    $id: cAuthor.$id,
+                    name: cAuthor.name,
+                    reputation: cAuthor.prefs.reputation,
+                  },
+                };
+              } catch {
+                return {
+                  ...c,
+                  author: {
+                    $id: "deleted",
+                    name: "Deleted User",
+                    reputation: 0,
+                  },
+                };
+              }
+            })
+          );
 
-        return {
-          ...answer,
-          comments: answerComments,
-          upvotesDocuments: answerUpvotes,
-          downvotesDocuments: answerDownvotes,
-          author: {
-            $id: aAuthor.$id,
-            name: aAuthor.name,
-            reputation: aAuthor.prefs.reputation,
-          },
-        };
+          return {
+            ...answer,
+            comments: answerComments,
+            upvotesDocuments: answerUpvotes,
+            downvotesDocuments: answerDownvotes,
+            author: {
+              $id: aAuthor.$id,
+              name: aAuthor.name,
+              reputation: aAuthor.prefs.reputation,
+            },
+          };
+        } catch {
+          return {
+            ...answer,
+            comments: [],
+            upvotesDocuments: [],
+            downvotesDocuments: [],
+            author: { $id: "deleted", name: "Deleted User", reputation: 0 },
+          };
+        }
       })
     ),
   ]);
 
   return (
-    <TracingBeam className="container pl-6">
+    <TracingBeam className="px-4 overflow-x-hidden">
       <Particles
         className="fixed inset-0 h-full w-full"
         quantity={500}
@@ -136,36 +174,44 @@ const Page = async (props: {
         color="#ffffff"
         refresh
       />
-      <div className="relative mx-auto px-4 pb-20 pt-36">
-        <div className="flex">
-          <div className="w-full">
-            <h1 className="mb-1 text-3xl font-bold">{question.title}</h1>
-            <div className="flex gap-4 text-sm">
+
+      {/* Container: responsive */}
+      <div className="relative w-full md:max-w-3xl lg:max-w-5xl md:mx-auto pb-20 pt-36">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row items-start justify-between mb-4">
+          <div className="w-full md:w-auto">
+            <h1 className="mb-1 text-3xl font-bold break-words">
+              {question.title}
+            </h1>
+            <div className="flex flex-wrap gap-4 text-sm text-gray-400">
               <span>
                 Asked {convertDateToRelativeTime(new Date(question.$createdAt))}
               </span>
-              <span>Answer {answers.total}</span>
+              <span>Answers {answers.total}</span>
               <span>Votes {upvotes.total + downvotes.total}</span>
             </div>
           </div>
-          <Link href="/questions/ask" className="ml-auto inline-block shrink-0">
-            <ShimmerButton className="shadow-2xl">
-              <span className="whitespace-pre-wrap text-center text-sm font-medium leading-none tracking-tight text-white dark:from-white dark:to-slate-900/10 lg:text-lg">
-                Ask a question
-              </span>
-            </ShimmerButton>
-          </Link>
+          <div className="mt-4 md:mt-0 flex-shrink-0">
+            <Link href="/questions/ask">
+              <ShimmerButton className="shadow-2xl">
+                <span className="whitespace-pre-wrap text-center text-sm font-medium lg:text-lg text-white">
+                  Ask a question
+                </span>
+              </ShimmerButton>
+            </Link>
+          </div>
         </div>
 
         <hr className="my-4 border-white/40" />
 
-        <div className="flex gap-4">
-          {/* Left: Vote, Edit, Delete */}
-          <div className="flex shrink-0 flex-col items-center gap-4">
+        {/* Main content */}
+        <div className="flex flex-col md:flex-row gap-6">
+          {/* Left: Vote/Edit/Delete */}
+          <div className="flex flex-row md:flex-col shrink-0 items-center md:items-start gap-4">
             <VoteButtons
               type="question"
               id={question.$id}
-              className="w-full"
+              className="flex-shrink-0"
               upvotes={upvotes}
               downvotes={downvotes}
             />
@@ -180,15 +226,15 @@ const Page = async (props: {
             />
           </div>
 
-          {/* Right: Content */}
-          <div className="w-full overflow-auto">
-            <MarkdownPreview
-              className="rounded-xl p-4"
-              source={question.content}
-            />
+          {/* Right: Question card */}
+          <div className="flex-1 w-full">
+            <div className="rounded-xl shadow-md p-4 md:p-6">
+              <MarkdownPreview
+                className="break-words"
+                source={question.content}
+              />
 
-            {question.attachmentId && (
-              <picture>
+              {question.attachmentId && (
                 <img
                   src={
                     storage.getFilePreview(
@@ -197,41 +243,44 @@ const Page = async (props: {
                     ).href
                   }
                   alt={question.title}
-                  className="mt-3 rounded-lg"
+                  className="mt-3 rounded-lg w-full max-w-full object-contain"
                 />
-              </picture>
-            )}
+              )}
 
-            <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
-              {question.tags.map((tag: string) => (
-                <Link
-                  key={tag}
-                  href={`/questions?tag=${tag}`}
-                  className="inline-block rounded-lg bg-white/10 px-2 py-0.5 duration-200 hover:bg-white/20"
-                >
-                  #{tag}
-                </Link>
-              ))}
-            </div>
+              <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
+                {question.tags.map((tag: string) => (
+                  <Link
+                    key={tag}
+                    href={`/questions?tag=${tag}`}
+                    className="inline-block rounded-lg bg-white/10 px-2 py-0.5 hover:bg-white/20"
+                  >
+                    #{tag}
+                  </Link>
+                ))}
+              </div>
 
-            <div className="mt-4 flex items-center justify-end gap-1">
-              <picture>
+              {/* Author info */}
+              <div className="mt-4 flex items-center justify-end gap-2">
                 <img
-                  src={avatars.getInitials(author.name, 36, 36).href}
-                  alt={author.name}
-                  className="rounded-lg"
+                  src={
+                    author?.name
+                      ? avatars.getInitials(author.name, 36, 36).href
+                      : "/default-avatar.png"
+                  }
+                  alt={author?.name || "Deleted User"}
+                  className="rounded-lg flex-shrink-0"
                 />
-              </picture>
-              <div className="block leading-tight">
-                <Link
-                  href={`/users/${author.$id}/${slugify(author.name)}`}
-                  className="text-orange-500 hover:text-orange-600"
-                >
-                  {author.name}
-                </Link>
-                <p>
-                  <strong>{author.prefs.reputation}</strong>
-                </p>
+                <div className="leading-tight text-right">
+                  <Link
+                    href={`/users/${author.$id}/${slugify(author.name)}`}
+                    className="text-orange-500 hover:text-orange-600"
+                  >
+                    {author.name}
+                  </Link>
+                  <p>
+                    <strong>{author.prefs?.reputation ?? 0}</strong>
+                  </p>
+                </div>
               </div>
             </div>
 
